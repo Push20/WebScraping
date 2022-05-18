@@ -1,75 +1,68 @@
-
 # importing the modules
 import re
 from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
   
 # using webdriver for chrome browser
-driver = webdriver.Chrome(ChromeDriverManager().install())
+driver = webdriver.Chrome()
   
 # using target url
-driver.get(
-    "https://www.tesco.com/groceries/en-GB/search?query=rice%2010kg&icid=tescohp_sws-1_m-ft_in-rice%2010kg_ab-226-b_out-rice%2010kg")
-  
-# printing the content of entire page
-# WholePage = (driver.find_element_by_xpath("/html/body").text)
+driver.get("https://www.tesco.com/groceries/en-GB/search?query=rice%2010kg&icid=tescohp_sws-1_m-ft_in-rice%2010kg_ab-226-b_out-rice%2010kg")
 
-# printing the content of the page which is digits only
-words = (driver.find_element_by_xpath("/html/body").text).split("\n")
+productDetails = (driver.find_elements(By.CLASS_NAME,value="product-details--wrapper"))
 
-print(words)
-# using regular expression to get the prices only
-Rices = []
-for index,word in enumerate(words):
-    if "Rice 10Kg" in word:
-        Rices.append(word)
+products = []
 
-    #prices
-    if re.search(r'£\d', word) != None:
-        Rices.append(word)
-    if re.search(r'£\s\d', word) != None:
-        Rices.append(word)
-
-arr = []
-#clean of words with trolley
-for word in (Rices):
-    #using regular expression to get rid of the trolley
-    if re.search(r'trolley$', word) != None:
-        # print(words[index-1],"\n",word)
-        Rices.remove(word)
-    elif re.search(r'^Add\s', word) != None:
-        # print(words[index-1],"\n",word)
-        Rices.remove(word)
+# looping through the product details and extracting the product name and price into products list
+for i,product in enumerate(productDetails):
+    rice = []
+    details= []
+    rice = product.text.split("\n")
+    # Rice name
+    details.append(rice[0])
+    # club card
+    if len(rice) == 13:
+        # club card price
+        details.append(rice[6])
+        # normal price
+        details.append(rice[8])
     else:
-        arr.append(word)    
+        # normal price
+        details.append(rice[5])
+    products.append(details)
 
-print(arr)
+# print all of the products list
+for i in products:
+    print(i)
 
-Rices.clear()
-products = {}
-pros = []
-for word in arr:
-    if "/kg" in word:
-        #finds the indes of the word
-        index = arr.index(word)
-        pros.append( arr[0:index+1])
-        arr = arr[index+1:len(arr)]
-        
-for i in pros:
-    products[i[0]] = i[1:len(i)+2]
-print(products)
+# extracting the prices of the product
+products_price = []
+for i in range(len(products)):
+    prices = []
+    for j in range(1,len(products[i])):
+        # adding the price to the list
+        if re.search(r'\d+',products[i][j]):
+            # removes all unwanted characters
+            products[i][j] = products[i][j].replace('£','')
+            products[i][j] = products[i][j].replace(' Clubcard Price','')
+            prices.append((re.findall(r'^\d*[.,]?\d*$',products[i][j]))[0])
+    products_price.append(prices)
 
-print(products['Laila Basmati Rice 10Kg'])
-    # if re.search(r' Rice ',word) != None:
-    #     print("Rice",word)
+min = 9999999.99
+# finding the minimum price
+for i in range (len(products_price)):
+    for j in range(len(products_price[i])):
+        if float(products_price[i][j]) < min:
+            min = float(products_price[i][j])
+            index = i
 
-# for i in DigitsOnly:
-#     # if i starts with £ 
-#     price.append(re.findall('^£[0-9]', i))
-#         # print the value
-        
-# print(price)
-# print(re.find[0-9]=="\d")
-  
-# closing the driver
+minimum =(products[index])
+
+# prints the minimum price product
+if len(minimum) == 3:
+    print("{} with a clubcard price of {}".format(minimum[0],minimum[1]))
+else:
+    print("{} with a normal price of {}".format(minimum[0],minimum[1]))
+
 driver.close()
